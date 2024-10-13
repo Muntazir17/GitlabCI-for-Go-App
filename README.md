@@ -6,7 +6,7 @@ The Go Web App is a sample application that demonstrates the following key featu
 - **Microservices Architecture**: Implemented using containerization for flexibility and maintainability.
 
 ![Go Web App](diagram.png)
-## Countinous Integration with GitLab
+## Continous Integration with GitLab
 
 This project utilizes GitLab CI for continuous integration, ensuring that code changes are automatically tested and validated before deployment. The CI pipeline consists of the following stages:
 
