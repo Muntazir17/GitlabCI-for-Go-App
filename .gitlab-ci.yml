@@ -1,0 +1,71 @@
+stages:
+  - build
+  - test
+  - lint
+  - push
+  - update-helm
+
+variables:
+  DOCKER_IMAGE: "$CI_REGISTRY_IMAGE/go-web-app"
+  DOCKER_TAG: "$CI_PIPELINE_ID"
+
+before_script:
+  - git config --global user.email "abhishek@gmail.com"
+  - git config --global user.name "Abhishek Veeramalla"
+
+build:
+  stage: build
+  image: golang:1.22
+  script:
+    - go build -o go-web-app
+  artifacts:
+    paths:
+      - go-web-app
+  only:
+    - main
+
+test:
+  stage: test
+  image: golang:1.22
+  script:
+    - go test ./...
+  only:
+    - main
+
+code-quality:
+  stage: lint
+  image: golangci/golangci-lint:v1.56.2
+  script:
+    - golangci-lint run
+  only:
+    - main
+
+push:
+  stage: push
+  needs: 
+    - build
+  image: docker:20.10.16
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_TOKEN" "$CI_REGISTRY"
+  script:
+    - docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
+    - docker push $DOCKER_IMAGE:$DOCKER_TAG
+  only:
+    - main
+
+update-newtag-in-helm-chart:
+  stage: update-helm
+  needs: 
+    - push
+  image: alpine:3.14
+  before_script:
+    - apk add --no-cache git bash
+  script:
+    - sed -i "s/tag:.*/tag:\"$DOCKER_TAG\"/" helm/go-web-app-chart/values.yaml
+    - git add helm/go-web-app-chart/values.yaml
+    - git commit -m "Update tag in Helm chart"
+    - git push
+  only:
+    - main
